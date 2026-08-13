@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rota de Saída — Imigração de trabalho por país e nível</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14202e;
+    --ink-2:#1c2c3d;
+    --paper:#f3eee2;
+    --paper-dim:#e8e1d0;
+    --sand:#c9bfa8;
+    --stamp:#a5333b;
+    --stamp-dark:#7d2530;
+    --gold:#b8933d;
+    --text-light:#ede7d9;
+    --text-dim:#a9b3c2;
+    --text-dark:#23303d;
+    --ok:#3f6b4f;
+    --no:#a5333b;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--text-light);
+    font-family:'IBM Plex Sans',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--stamp);color:var(--paper);}
+
+  .bg-texture{
+    position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.06;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, var(--sand) 39px, var(--sand) 40px);
+  }
+
+  header.cover{
+    position:relative;z-index:1;
+    padding:64px 24px 48px;
+    text-align:center;
+    border-bottom:1px solid rgba(201,191,168,.25);
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    font-size:11px;
+    color:var(--gold);
+    margin-bottom:18px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:700;
+    font-size:clamp(34px,6vw,64px);
+    line-height:1.02;
+    margin:0 0 18px;
+    letter-spacing:-.01em;
+  }
+  h1 em{
+    font-style:italic;
+    font-weight:500;
+    color:var(--stamp);
+  }
+  .sub{
+    max-width:560px;
+    margin:0 auto;
+    color:var(--text-dim);
+    font-size:16px;
+    line-height:1.6;
+  }
+  .stamp-seal{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:92px;height:92px;
+    border:2px solid var(--gold);
+    border-radius:50%;
+    margin-bottom:22px;
+    transform:rotate(-6deg);
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .stamp-seal svg{width:52px;height:52px;stroke:var(--gold);}
+
+  main{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:44px 20px 100px;}
+
+  /* Country picker */
+  .picker-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--gold);margin:0 0 14px;
+  }
+  #countryGrid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:8px;
+    margin-bottom:40px;
+  }
+  .country-btn{
+    display:flex;align-items:center;gap:10px;
+    background:var(--ink-2);
+    border:1px solid rgba(201,191,168,.2);
+    border-radius:3px;
+    padding:11px 13px;
+    color:var(--text-light);
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:13.5px;font-weight:500;
+    cursor:pointer;text-align:left;
+    transition:border-color .15s, background .15s, transform .1s;
+  }
+  .country-btn:hover{border-color:var(--gold);}
+  .country-btn:active{transform:scale(.98);}
+  .country-btn.active{
+    background:var(--stamp);
+    border-color:var(--stamp);
+    color:var(--paper);
+  }
+  .country-btn .flag{font-size:18px;line-height:1;}
+
+  /* Level tabs styled like a row of visa stamps */
+  .level-row{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    padding-bottom:6px;
+    margin-bottom:6px;
+    border-bottom:1px solid rgba(201,191,168,.25);
+  }
+  .level-tab{
+    flex:1 1 auto;
+    white-space:nowrap;
+    background:transparent;
+    border:none;
+    border-bottom:3px solid transparent;
+    color:var(--text-dim);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    letter-spacing:.03em;
+    padding:14px 12px 12px;
+    cursor:pointer;
+    transition:color .15s;
+  }
+  .level-tab .n{color:var(--gold);margin-right:6px;}
+  .level-tab:hover{color:var(--text-light);}
+  .level-tab.active{color:var(--paper);border-bottom-color:var(--stamp);}
+
+  /* Content card */
+  .dossier{
+    margin-top:34px;
+    background:var(--paper);
+    color:var(--text-dark);
+    border-radius:4px;
+    overflow:hidden;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.5);
+  }
+  .dossier-head{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:20px;
+    padding:30px 32px 22px;
+    border-bottom:1px dashed var(--sand);
+  }
+  .dossier-head h2{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:26px;
+    margin:0 0 6px;
+  }
+  .visa-name{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--stamp-dark);
+    background:rgba(165,51,59,.08);
+    display:inline-block;
+    padding:4px 9px;
+    border-radius:2px;
+    border:1px solid rgba(165,51,59,.25);
+  }
+  .seal-mini{
+    flex:0 0 auto;
+    width:64px;height:64px;
+    border:2px solid var(--stamp);
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    transform:rotate(8deg);
+    color:var(--stamp);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:9px;letter-spacing:.05em;
+    text-align:center;
+    line-height:1.2;
+    opacity:.85;
+  }
+
+  .ledger{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+  .col{padding:26px 32px 34px;}
+  .col + .col{border-left:1px dashed var(--sand);}
+  .col-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    margin:0 0 16px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .col-label.pro{color:var(--ok);}
+  .col-label.con{color:var(--no);}
+  .col ul{list-style:none;margin:0;padding:0;}
+  .col li{
+    display:flex;gap:10px;
+    font-size:14.5px;line-height:1.55;
+    margin-bottom:14px;
+    color:var(--text-dark);
+  }
+  .col li .mark{flex:0 0 auto;font-weight:700;font-size:13px;margin-top:2px;}
+  .col li.pro .mark{color:var(--ok);}
+  .col li.con .mark{color:var(--no);}
+
+  @media (max-width:600px){
+    .ledger{grid-template-columns:1fr;}
+    .col + .col{border-left:none;border-top:1px dashed var(--sand);}
+    .dossier-head{flex-direction:column;}
+  }
+
+  footer{
+    position:relative;z-index:1;
+    text-align:center;
+    padding:36px 20px 60px;
+    color:var(--text-dim);
+    font-size:12.5px;
+    font-family:'IBM Plex Mono',monospace;
+    line-height:1.7;
+  }
+  footer a{color:var(--gold);}
+</style>
+</head>
+<body>
+<div class="bg-texture"></div>
+
+<header class="cover">
+  <div class="stamp-seal">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.4"><path d="M12 2 L22 7 L22 13 C22 18 17.5 21.5 12 23 C6.5 21.5 2 18 2 13 L2 7 Z"/></svg>
+  </div>
+  <div class="eyebrow">Guia comparativo · imigração de trabalho</div>
+  <h1>Antes de fazer<br><em>a mala</em>.</h1>
+  <p class="sub">Compare, país a país e nível a nível — do braçal ao doutorado — os vistos, prós e contras de imigrar para trabalhar. Escolha um país abaixo pra abrir o dossiê.</p>
+</header>
+
+<main>
+  <p class="picker-label">01 · Escolha o país</p>
+  <div id="countryGrid"></div>
+
+  <p class="picker-label">02 · Escolha o nível de qualificação</p>
+  <div class="level-row" id="levelRow"></div>
+
+  <div class="dossier" id="dossier"></div>
+</main>
+
+<footer>
+  Feito para orientação inicial — regras de imigração mudam com frequência.<br>
+  Confirme sempre nas fontes oficiais de cada país antes de tomar decisões.
+</footer>
+
+<script>
+const LEVELS = [
+  {key:'peao', label:'Braçal', full:'Trabalho braçal / não qualificado'},
+  {key:'tecnico', label:'Técnico', full:'Técnico / operacional'},
+  {key:'graduacao', label:'Graduação', full:'Nível superior (graduado)'},
+  {key:'mestrado', label:'Mestrado', full:'Mestrado'},
+  {key:'phd', label:'PhD', full:'Doutorado / pesquisador'},
+];
+
+const DATA = [
+{name:'Canadá', flag:'🇨🇦', levels:{
+  peao:{visto:'Agricultural Stream (TFWP)', pros:['Pilotos de imigração no setor agroalimentar podem levar a PR','Salário mínimo garantido por regulação federal'], contras:['Visto amarrado a um único empregador','Processo de LMIA lento e caro para o empregador']},
+  tecnico:{visto:'Federal Skilled Trades / PNP', pros:['Forte demanda em construção e óleo & gás','Rota direta pelo Express Entry para ofício certificado'], contras:['Exige certificação de ofício reconhecida no Canadá','Teste de inglês/francês obrigatório']},
+  graduacao:{visto:'Express Entry (Federal Skilled Worker)', pros:['Sistema por pontos claro e transparente','Caminho direto à residência permanente'], contras:['Concorrência alta pelo corte do CRS','Diploma precisa de avaliação equivalente (ECA)']},
+  mestrado:{visto:'Express Entry + pontos por educação', pros:['Pontos extras relevantes no CRS','Boas chances em rodadas provinciais (PNP)'], contras:['Avaliação de diploma (WES) tem custo e demora','Ainda depende de nota de corte competitiva']},
+  phd:{visto:'Express Entry / PNP para doutores', pros:['Pontuação CRS muito alta','Algumas províncias dispensam oferta de emprego'], contras:['Mercado acadêmico permanente concorrido','Poucas posições de pós-doc bem remuneradas']},
+}},
+{name:'Estados Unidos', flag:'🇺🇸', levels:{
+  peao:{visto:'H-2A (agrícola) / H-2B (sazonal)', pros:['Demanda constante em agricultura e turismo','Processo bem estabelecido para vagas sazonais'], contras:['Visto temporário, não leva a green card','Totalmente dependente do empregador/sponsor']},
+  tecnico:{visto:'H-2B / EB-3 "Other Workers"', pros:['EB-3 pode resultar em green card'], contras:['Fila de espera de anos para green card','Cota anual limitada e concorrida']},
+  graduacao:{visto:'H-1B + EB-2/EB-3', pros:['Salários altos e mercado de trabalho gigante'], contras:['Loteria anual do H-1B é muito incerta','Cap anual bem menor que a demanda']},
+  mestrado:{visto:'H-1B (advanced degree cap) + EB-2', pros:['Cota extra de 20 mil vagas H-1B para mestrado nos EUA','EB-2 costuma andar mais rápido que EB-3'], contras:['Loteria ainda se aplica a mestrado feito fora dos EUA','Fila do green card varia MUITO por país de nascimento']},
+  phd:{visto:'O-1 ou EB-1/EB-2 com NIW', pros:['NIW dispensa oferta formal de emprego','O-1 não passa por loteria'], contras:['Precisa comprovar destaque/impacto significativo','Dossiê documental extenso e caro']},
+}},
+{name:'Portugal', flag:'🇵🇹', levels:{
+  peao:{visto:'Visto de trabalho subordinado (CPLP)', pros:['Idioma comum facilita muito a adaptação','Acordo CPLP simplifica o processo para brasileiros'], contras:['Salários baixos frente ao custo de vida','Alta demanda por moradia acessível']},
+  tecnico:{visto:'Visto de trabalho subordinado', pros:['Mercado aquecido em construção e serviços','CPLP facilita a entrada e regularização'], contras:['Burocracia da AIMA (ex-SEF) costuma ser lenta','Salários ainda modestos para o setor']},
+  graduacao:{visto:'Visto de trabalho subordinado / Job Seeker', pros:['Caminho a residência permanente em 5 anos','Integração cultural muito mais fácil'], contras:['Salários abaixo da média da Europa Ocidental']},
+  mestrado:{visto:'Visto de trabalho + equivalência de diploma', pros:['Bom trampolim para o resto da UE','Custo de vida ainda acessível para padrão europeu'], contras:['Mercado qualificado menor que Alemanha ou Holanda']},
+  phd:{visto:'Visto para investigadores / bolsas FCT', pros:['Comunidade científica acolhedora','Acesso a financiamento de pesquisa europeu'], contras:['Bolsas e salários acadêmicos abaixo da média da UE']},
+}},
+{name:'Alemanha', flag:'🇩🇪', levels:{
+  peao:{visto:'Praticamente sem via específica', pros:['Poucas exceções pontuais (au pair, estágio)'], contras:['Sem visto de trabalho para não qualificados fora da UE','Mercado fechado para essa faixa']},
+  tecnico:{visto:'Chancenkarte / visto para profissão regulada', pros:['Grande escassez de mão de obra técnica','Chancenkarte permite entrar já buscando emprego'], contras:['Exige reconhecimento formal da qualificação (Anerkennung)','Alemão geralmente necessário no dia a dia']},
+  graduacao:{visto:'EU Blue Card', pros:['Teto salarial reduzido para profissões em falta','Caminho a residência em 21–33 meses'], contras:['Exige diploma reconhecido e salário mínimo definido']},
+  mestrado:{visto:'EU Blue Card (faixa STEM)', pros:['Threshold salarial mais baixo para engenharia/TI','Altíssima demanda por perfis técnicos'], contras:['Alemão ainda ajuda muito fora do escritório']},
+  phd:{visto:'Visto de pesquisador (§18d) / Blue Card', pros:['Mercado de pesquisa forte, bolsas DAAD','Isenção de alguns requisitos salariais padrão'], contras:['Posições acadêmicas permanentes muito concorridas']},
+}},
+{name:'Austrália', flag:'🇦🇺', levels:{
+  peao:{visto:'Working Holiday Visa (até 35 anos)', pros:['Fácil de obter, permite trabalhar em quase tudo'], contras:['Totalmente temporário (1 a 3 anos)','Não é caminho para residência']},
+  tecnico:{visto:'Skilled Trades (Subclass 482/491)', pros:['Forte demanda em construção e mineração','Bons salários para ofícios listados'], contras:['Exige avaliação de ofício (trade assessment)','Inglês em nível exigido']},
+  graduacao:{visto:'Skilled Independent (189) / Nominated (190)', pros:['Sistema de pontos transparente','189 dispensa patrocinador'], contras:['Profissão precisa constar na lista de ocupações em demanda']},
+  mestrado:{visto:'189/190 com pontos por estudo local', pros:['Estudar na Austrália soma pontos e facilita adaptação'], contras:['Custo de vida e mensalidades altos']},
+  phd:{visto:'189/190 (pontos altos) / Global Talent', pros:['Pontuação extra relevante por doutorado','Global Talent para perfis de destaque'], contras:['Mercado acadêmico pequeno frente à procura']},
+}},
+{name:'Nova Zelândia', flag:'🇳🇿', levels:{
+  peao:{visto:'Sem via fácil (RSE é só p/ países do Pacífico)', pros:['Poucas exceções pontuais em turismo/agricultura'], contras:['Praticamente fechado para brasileiros não qualificados']},
+  tecnico:{visto:'Accredited Employer Work Visa (AEWV)', pros:['Pode levar à Skilled Migrant Category'], contras:['Precisa de empregador credenciado','Processo em duas etapas (empregador + trabalhador)']},
+  graduacao:{visto:'AEWV + Skilled Migrant Category', pros:['Sistema por pontos parecido com o australiano','Alta qualidade de vida'], contras:['Economia pequena, menos vagas que a Austrália']},
+  mestrado:{visto:'AEWV + Skilled Migrant (pontos extras)', pros:['Boa relação entre pontuação e chance de aprovação'], contras:['Mercado de trabalho concentrado fora de Auckland']},
+  phd:{visto:'Visto de pesquisa / Skilled Migrant', pros:['Pontos extras significativos por doutorado'], contras:['Poucas vagas acadêmicas, salários menores que Austrália/EUA']},
+}},
+{name:'Reino Unido', flag:'🇬🇧', levels:{
+  peao:{visto:'Seasonal Worker visa (agricultura)', pros:['Fácil de conseguir, sem exigência de qualificação'], contras:['Totalmente temporário (cerca de 6 meses)','Sem caminho a residência']},
+  tecnico:{visto:'Skilled Worker visa (ofício elegível)', pros:['Pode levar ao ILR (residência) em 5 anos'], contras:['Salário mínimo por ocupação subiu bastante','Empregador precisa ter sponsor licence']},
+  graduacao:{visto:'Skilled Worker visa', pros:['Caminho claro ao ILR em 5 anos'], contras:['Exige sponsor e salário mínimo por ocupação','Custo de aplicação e "health surcharge" alto']},
+  mestrado:{visto:'Skilled Worker visa', pros:['Mais fácil atingir o salário mínimo exigido'], contras:['Mesmos custos altos de aplicação e surcharge']},
+  phd:{visto:'Global Talent visa / Skilled Worker', pros:['Global Talent dispensa sponsor de emprego'], contras:['Exige endosso de instituição reconhecida']},
+}},
+{name:'Irlanda', flag:'🇮🇪', levels:{
+  peao:{visto:'Sem via clássica fora da UE', pros:['Poucas exceções pontuais'], contras:['Mercado fechado para não qualificados extra-UE']},
+  tecnico:{visto:'General Employment Permit', pros:['Economia aquecida, boa demanda em construção'], contras:['Lista de ocupações elegíveis é restrita']},
+  graduacao:{visto:'Critical Skills Employment Permit', pros:['Caminho rápido a residência (2 anos)','Família pode se juntar quase de imediato'], contras:['Precisa estar em lista de ocupações estratégicas']},
+  mestrado:{visto:'Critical Skills Employment Permit', pros:['Irlanda é hub europeu de tecnologia (Google, Meta etc.)'], contras:['Custo de vida em Dublin muito alto']},
+  phd:{visto:'Critical Skills / Researcher visa', pros:['Forte ecossistema de pesquisa e multinacionais de tech'], contras:['Poucas vagas puramente acadêmicas bem pagas']},
+}},
+{name:'Países Baixos', flag:'🇳🇱', levels:{
+  peao:{visto:'Sem via fácil fora da UE', pros:['Poucas exceções pontuais'], contras:['Mercado fechado para não qualificados']},
+  tecnico:{visto:'Emprego regular com sponsor', pros:['Economia forte, boas condições trabalhistas'], contras:['Exige empregador reconhecido como sponsor']},
+  graduacao:{visto:'Highly Skilled Migrant visa', pros:['Processo rápido (semanas)','Sem exigir avaliação formal de diploma'], contras:['Salário mínimo definido por lei','Empregador precisa ser sponsor reconhecido']},
+  mestrado:{visto:'Highly Skilled Migrant (salário reduzido)', pros:['Ano de busca de emprego (orientation year) sem sponsor'], contras:['Mercado bastante competitivo em Amsterdã']},
+  phd:{visto:'Highly Skilled Migrant / visto de pesquisador', pros:['Salário mínimo exigido mais baixo para pesquisadores','"30% ruling" reduz a carga tributária'], contras:['Posições permanentes limitadas']},
+}},
+{name:'Espanha', flag:'🇪🇸', levels:{
+  peao:{visto:'Visto de trabalho + contingente de origem', pros:['Idioma próximo ao português facilita a adaptação'], contras:['Desemprego estrutural alto','Salários baixos']},
+  tecnico:{visto:'Visto de trabalho (ocupações de difícil cobertura)', pros:['Regularização possível após tempo de residência (arraigo)'], contras:['Burocracia lenta, salários abaixo da média da UE']},
+  graduacao:{visto:'Visto de trabalho qualificado', pros:['Proximidade cultural e idiomática com o Brasil'], contras:['Mercado qualificado competitivo, salários moderados']},
+  mestrado:{visto:'Visto de trabalho qualificado', pros:['Comunidade brasileira grande, adaptação fácil'], contras:['Salários ainda abaixo de Alemanha/Holanda']},
+  phd:{visto:'Visto para investigadores / Lei de Startups', pros:['Nova lei de startups facilita vistos para talento'], contras:['Financiamento de pesquisa mais limitado que no norte da Europa']},
+}},
+{name:'Itália', flag:'🇮🇹', levels:{
+  peao:{visto:'Decreto Flussi (cotas anuais)', pros:['Cotas específicas para agricultura e turismo'], contras:['Sistema de cotas concorrido e burocrático','Requer contrato pré-aprovado']},
+  tecnico:{visto:'Decreto Flussi (trabalho subordinado)', pros:['Cidadania italiana por descendência facilita muito (jus sanguinis)'], contras:['Cotas limitadas, prazos rígidos de inscrição']},
+  graduacao:{visto:'Decreto Flussi / EU Blue Card', pros:['Acesso à cidadania por descendência acelera tudo'], contras:['Salários baixos para padrão da Europa Ocidental']},
+  mestrado:{visto:'EU Blue Card', pros:['Mesma vantagem de cidadania por descendência'], contras:['Economia com crescimento lento, salários modestos']},
+  phd:{visto:'Visto para pesquisador (accordo di ospitalità)', pros:['Forte tradição acadêmica e de humanidades'], contras:['Investimento em pesquisa menor que Alemanha/países nórdicos']},
+}},
+{name:'Japão', flag:'🇯🇵', levels:{
+  peao:{visto:'Tokutei Ginou tipo 1 (habilidade específica)', pros:['Programa criado para suprir mão de obra','Japonês exigido é apenas básico'], contras:['Testes de japonês e de habilidade obrigatórios','Não permite trazer família']},
+  tecnico:{visto:'Engineer/Specialist ou Tokutei Ginou 1/2', pros:['Grande comunidade brasileira (nikkeis)','Visto "teijuu" facilita muito para descendentes'], contras:['Japonês intermediário geralmente exigido']},
+  graduacao:{visto:'Engineer/Specialist in Humanities', pros:['Sistema de pontos para profissional altamente qualificado'], contras:['Japonês fluente costuma ser esperado no dia a dia']},
+  mestrado:{visto:'Highly Skilled Professional visa', pros:['Pontos extras por mestrado','Residência permanente possível em 1–3 anos'], contras:['Cultura corporativa muito distinta, barreira do idioma']},
+  phd:{visto:'Highly Skilled Professional visa', pros:['Caminho mais rápido a residência do sistema japonês'], contras:['Mercado acadêmico majoritariamente em japonês']},
+}},
+{name:'Coreia do Sul', flag:'🇰🇷', levels:{
+  peao:{visto:'E-9 (Employment Permit System)', pros:['Sistema formal regulado pelo governo'], contras:['Vagas definidas por acordo bilateral de origem','Visto temporário']},
+  tecnico:{visto:'E-7 (trabalhador especializado)', pros:['Pode levar a residência de longo prazo (F-2)'], contras:['Precisa de patrocínio de empregador e função específica']},
+  graduacao:{visto:'E-7 / D-10 (busca de emprego)', pros:['Forte demanda em tecnologia e engenharia'], contras:['Coreano fluente costuma ser exigido fora de multinacionais']},
+  mestrado:{visto:'E-7 / F-2-7 (sistema de pontos)', pros:['Pontos extras por mestrado no sistema coreano'], contras:['Mercado de trabalho muito hierárquico e competitivo']},
+  phd:{visto:'D-2 (pesquisa) → E-3/E-7, ou F-2-7', pros:['Forte investimento em P&D (semicondutores, biotecnologia)'], contras:['Barreira cultural e linguística significativa']},
+}},
+{name:'Emirados Árabes Unidos', flag:'🇦🇪', levels:{
+  peao:{visto:'Visto de trabalho patrocinado (kafala)', pros:['Sem imposto de renda','Alta demanda por mão de obra'], contras:['Visto totalmente atrelado ao empregador','Sem caminho a cidadania']},
+  tecnico:{visto:'Visto de trabalho padrão via empregador', pros:['Salários competitivos, mercado grande de construção'], contras:['Proteção trabalhista fraca, dependência total do sponsor']},
+  graduacao:{visto:'Visto de trabalho / Green Visa (5 anos)', pros:['Green Visa dá mais independência do empregador','Sem imposto de renda'], contras:['Alto custo de vida em Dubai','Sem via de cidadania']},
+  mestrado:{visto:'Green Visa / Golden Visa', pros:['Golden Visa dá 10 anos de residência e liberdade para empreender'], contras:['Exige salário ou patrimônio mínimo alto']},
+  phd:{visto:'Golden Visa (cientistas/pesquisadores)', pros:['10 anos de residência, sem necessidade de sponsor'], contras:['Seleção depende de reconhecimento em área de destaque']},
+}},
+{name:'Suíça', flag:'🇨🇭', levels:{
+  peao:{visto:'Sem via fora da UE/EFTA', pros:['Poucas exceções pontuais'], contras:['Cotas praticamente reservadas à UE/EFTA']},
+  tecnico:{visto:'Cota para países terceiros (bem restrita)', pros:['Salários entre os mais altos do mundo quando aprovado'], contras:['Pouquíssimas vagas para não-UE, priorizam alta qualificação']},
+  graduacao:{visto:'Permit L/B via cota para países terceiros', pros:['Salários altíssimos, economia muito forte'], contras:['Cotas anuais limitadas e concorridas','Custo de vida altíssimo']},
+  mestrado:{visto:'Mesma cota, com mais chance por qualificação', pros:['Universidades suíças (ETH, EPFL) bem vistas por empregadores'], contras:['Ainda depende de cota restrita a "especialistas"']},
+  phd:{visto:'Visto de pesquisador vinculado a instituição', pros:['Financiamento de pesquisa entre os melhores do mundo'], contras:['Custo de vida extremo, cota geral volta a valer depois']},
+}},
+{name:'Suécia', flag:'🇸🇪', levels:{
+  peao:{visto:'Visto de trabalho padrão (com oferta formal)', pros:['Sistema aberto, sem lista fechada de ocupações'], contras:['Salário deve seguir padrão sindical/setorial','Processo pode ser lento']},
+  tecnico:{visto:'Visto de trabalho padrão', pros:['Fortes direitos trabalhistas, sindicatos protegem estrangeiros'], contras:['Sueco ajuda bastante fora de grandes empresas']},
+  graduacao:{visto:'Work permit com oferta de emprego', pros:['Caminho a residência permanente em 4 anos'], contras:['Mudanças recentes na lei aumentaram o salário mínimo exigido']},
+  mestrado:{visto:'Work permit (demanda em tech/engenharia)', pros:['Forte cena de startups em Estocolmo'], contras:['Inverno rigoroso, custo de vida alto']},
+  phd:{visto:'Visto de doutorando (considerado emprego)', pros:['PhD é remunerado como emprego regular','Conta para residência permanente'], contras:['Processo seletivo acadêmico bastante concorrido']},
+}},
+{name:'México', flag:'🇲🇽', levels:{
+  peao:{visto:'Residente Temporal (permiso de trabajo)', pros:['Proximidade cultural, custo de vida menor'], contras:['Salários baixos para padrão internacional']},
+  tecnico:{visto:'Residente Temporal com permiso de trabajo', pros:['Processo menos burocrático que países desenvolvidos'], contras:['Salários e condições trabalhistas mais baixos']},
+  graduacao:{visto:'Residente Temporal com oferta de trabalho', pros:['Processo fácil comparado a Europa/América do Norte'], contras:['Salários bem abaixo de EUA/Canadá para o mesmo cargo']},
+  mestrado:{visto:'Residente Temporal (setor tech em alta)', pros:['Boom de nearshoring puxa demanda por mão de obra qualificada'], contras:['Ainda salários modestos comparado a padrões americanos']},
+  phd:{visto:'Residente Temporal + vínculo com universidade', pros:['Bolsas de pesquisa para estrangeiros via CONAHCYT'], contras:['Financiamento científico limitado frente a países ricos']},
+}},
+{name:'Chile', flag:'🇨🇱', levels:{
+  peao:{visto:'Visto Temporario (sujeito a contrato)', pros:['Processo relativamente simples para sul-americanos'], contras:['Salário mínimo baixo, mercado informal grande']},
+  tecnico:{visto:'Visto Sujeto a Contrato', pros:['Economia mais estável da região'], contras:['Vagas concentradas em Santiago']},
+  graduacao:{visto:'Visto Sujeto a Contrato / Visa de Oportunidades', pros:['Um dos mercados mais abertos da América do Sul'], contras:['Salários abaixo de padrão europeu/norte-americano']},
+  mestrado:{visto:'Visto Sujeto a Contrato (mineração/tech)', pros:['Forte mercado de mineração e cena de startups'], contras:['Alto custo de vida em Santiago frente ao salário local']},
+  phd:{visto:'Vínculo com universidade + bolsas ANID', pros:['Bolsas de pesquisa relativamente acessíveis'], contras:['Financiamento científico ainda modesto frente à Europa/EUA']},
+}},
+];
+
+let currentCountry = 0;
+let currentLevel = 'graduacao';
+
+function renderCountryGrid(){
+  const grid = document.getElementById('countryGrid');
+  grid.innerHTML = DATA.map((c,i)=>`
+    <button class="country-btn ${i===currentCountry?'active':''}" data-i="${i}">
+      <span class="flag">${c.flag}</span><span>${c.name}</span>
+    </button>`).join('');
+  grid.querySelectorAll('.country-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      currentCountry = parseInt(btn.dataset.i);
+      renderCountryGrid();
+      renderDossier();
+    });
+  });
+}
+
+function renderLevelRow(){
+  const row = document.getElementById('levelRow');
+  row.innerHTML = LEVELS.map((l,i)=>`
+    <button class="level-tab ${l.key===currentLevel?'active':''}" data-k="${l.key}">
+      <span class="n">${String(i+1).padStart(2,'0')}</span>${l.label}
+    </button>`).join('');
+  row.querySelectorAll('.level-tab').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      currentLevel = btn.dataset.k;
+      renderLevelRow();
+      renderDossier();
+    });
+  });
+}
+
+function renderDossier(){
+  const country = DATA[currentCountry];
+  const levelInfo = LEVELS.find(l=>l.key===currentLevel);
+  const d = country.levels[currentLevel];
+  const el = document.getElementById('dossier');
+  el.innerHTML = `
+    <div class="dossier-head">
+      <div>
+        <h2>${country.flag} ${country.name} — ${levelInfo.full}</h2>
+        <span class="visa-name">${d.visto}</span>
+      </div>
+      <div class="seal-mini">VISTO<br>DE<br>TRABALHO</div>
+    </div>
+    <div class="ledger">
+      <div class="col">
+        <p class="col-label pro">✓ Prós</p>
+        <ul>${d.pros.map(p=>`<li class="pro"><span class="mark">+</span>${p}</li>`).join('')}</ul>
+      </div>
+      <div class="col">
+        <p class="col-label con">✕ Contras</p>
+        <ul>${d.contras.map(p=>`<li class="con"><span class="mark">–</span>${p}</li>`).join('')}</ul>
+      </div>
+    </div>
+  `;
+}
+
+renderCountryGrid();
+renderLevelRow();
+renderDossier();
+</script>
+</body>
+</html>
